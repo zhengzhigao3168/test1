@@ -428,19 +428,31 @@ class ScreenMonitor:
         try:
             # 转换为numpy数组
             img_array = np.array(image)
-            
+
             # 转换为灰度图
             gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-            
-            # 增强对比度
-            contrast = cv2.convertScaleAbs(gray, alpha=1.5, beta=0)
-            
-            # 去噪
-            denoised = cv2.medianBlur(contrast, 3)
-            
+
+            # 放大图像以提升小字体识别率
+            gray = cv2.resize(gray, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_LINEAR)
+
+            # 双边滤波保留边缘同时去噪
+            filtered = cv2.bilateralFilter(gray, 9, 75, 75)
+
+            # 自适应阈值处理
+            thresh = cv2.adaptiveThreshold(
+                filtered, 255,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY, 31, 2
+            )
+
+            # 形态学操作进一步去噪
+            kernel = np.ones((2, 2), np.uint8)
+            morphed = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+            morphed = cv2.morphologyEx(morphed, cv2.MORPH_CLOSE, kernel)
+
             # 转换回PIL Image
-            processed_image = Image.fromarray(denoised)
-            
+            processed_image = Image.fromarray(morphed)
+
             return processed_image
             
         except Exception as e:

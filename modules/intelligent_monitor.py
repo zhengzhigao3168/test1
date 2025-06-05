@@ -908,7 +908,8 @@ class IntelligentMonitor:
                     logger.debug(f"📸 已保存区域{i}截图: {region_screenshot_path}")
                     
                     # 使用OCR提取文字
-                    region_text = await self._extract_text_direct(cropped_image)
+                    # 使用OCR提取文字（核心方法）
+                    region_text = await self._ocr_extract_text(cropped_image)
                     
                     if region_text and not region_text.startswith("OCR_FAILED"):
                         logger.info(f"✅ 区域{i} OCR成功: {region_text[:50]}...")
@@ -936,9 +937,16 @@ class IntelligentMonitor:
             logger.error(f"❌ 从截图提取文本时出错: {e}")
             return f"OCR_FAILED:EXTRACT_ERROR:{e}"
 
-    async def _extract_text_direct(self, image: Image.Image) -> str:
-        """直接从图像提取文本的备用方法"""
+    async def _ocr_extract_text(self, image: Image.Image) -> str:
+        """OCR提取文本的核心方法"""
         try:
+            # 尝试使用screen_monitor的预处理以提升识别率
+            try:
+                if getattr(self, 'screen_monitor', None):
+                    image = self.screen_monitor.preprocess_image(image)
+            except Exception as e:
+                logger.debug(f"OCR预处理失败: {e}")
+
             # 尝试使用EasyOCR
             if hasattr(self, 'ocr_reader') and self.ocr_reader:
                 import numpy as np
