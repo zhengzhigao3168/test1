@@ -639,6 +639,20 @@ class AutomationController:
         except Exception as e:
             logger.debug(f"验证输入焦点时出错: {e}")
             return True  # 默认认为成功
+
+    async def verify_message_sent(self) -> bool:
+        """验证发送后输入框是否为空"""
+        import pyperclip
+        try:
+            pyautogui.hotkey('ctrl', 'a')
+            await asyncio.sleep(0.1)
+            pyautogui.hotkey('ctrl', 'c')
+            await asyncio.sleep(0.2)
+            content = pyperclip.paste().strip()
+            return content == ""
+        except Exception as e:
+            logger.debug(f"检测发送状态时出错: {e}")
+            return True
     
     async def fallback_click_strategy(self) -> bool:
         """备用点击策略"""
@@ -712,7 +726,16 @@ class AutomationController:
             logger.info("按键: ctrl+enter")
             pyautogui.hotkey('ctrl', 'enter')
             await asyncio.sleep(0.5)
-            
+
+            # 新增：验证消息是否发送成功
+            if not await self.verify_message_sent():
+                logger.warning("⚠️ 发送后检测到输入框仍有内容，重试发送")
+                pyautogui.hotkey('ctrl', 'enter')
+                await asyncio.sleep(0.5)
+                if not await self.verify_message_sent():
+                    logger.error("❌ 多次尝试仍未成功发送")
+                    return False
+
             logger.info("✅ CURSOR交互完成")
             return True
             

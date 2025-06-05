@@ -732,9 +732,30 @@ class CursorSupervisor:
             else:
                 # 其他操作直接执行
                 await self.automation_controller.execute_action(analysis_result)
-            
+
         except Exception as e:
             logger.error(f"❌ 处理交互时出错: {e}")
+
+    async def wait_until_cursor_idle(self, timeout: int = 30, interval: float = 2.0):
+        """在发送指令前等待CURSOR输出完成"""
+        try:
+            start = time.time()
+            previous_text = self.last_dialog_content
+            while time.time() - start < timeout:
+                screenshot = await self.screen_monitor.capture_screenshot()
+                if not screenshot:
+                    await asyncio.sleep(interval)
+                    continue
+                current_text = await self.intelligent_monitor.extract_text_from_screenshot(screenshot)
+                similarity = self.calculate_content_similarity(current_text, previous_text)
+                if similarity < 0.9 and len(current_text.strip()) > 0:
+                    logger.info("🔄 识别到CURSOR还在执行任务，等待...")
+                    previous_text = current_text
+                    await asyncio.sleep(interval)
+                else:
+                    break
+        except Exception as e:
+            logger.debug(f"等待CURSOR空闲时出错: {e}")
     
     async def ensure_input_focus_and_type(self, action: Dict[str, Any]):
         """确保输入框获得焦点后再输入 - 使用新的粘贴输入方式"""
@@ -743,9 +764,12 @@ class CursorSupervisor:
             if not text_to_type:
                 logger.warning("⚠️ 没有要输入的文本")
                 return False
-            
+
             logger.info(f"📝 准备输入文本: {text_to_type[:100]}...")
-            
+
+            # 发送前等待CURSOR输出结束
+            await self.wait_until_cursor_idle()
+
             # 直接使用automation_controller的新方法
             success = await self.automation_controller.perform_chat_input_action(text_to_type)
             
