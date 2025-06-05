@@ -1568,12 +1568,20 @@ CURSOR回复摘要: {content_analysis['raw_content']}
             current_stage = self.analyze_current_development_stage(cursor_reply, conversation_context)
             
             # 调用GPT-4O产品经理分析，传入详细的分析结果
+            task_instruction = ""
+            if self.project_planner:
+                try:
+                    task_instruction = self.project_planner.generate_task_instruction(cursor_reply)
+                except Exception as e:
+                    logger.error(f"生成任务指令失败: {e}")
+
             pm_reply = self.gpt_controller.analyze_as_product_manager(
                 screenshot=screenshot,
                 cursor_reply=f"{analysis_context}\n\n原始回复内容:\n{cursor_reply}",
                 project_context=project_context,
                 conversation_history=conversation_context,
-                current_stage=f"{current_stage} (建议行动: {content_analysis['next_action']})"
+                current_stage=f"{current_stage} (建议行动: {content_analysis['next_action']})",
+                task_instruction=task_instruction
             )
             
             # 根据next_action调整指令
@@ -1682,12 +1690,20 @@ CURSOR回复摘要: {content_analysis['raw_content']}
                 current_stage = self.analyze_current_development_stage(cursor_reply, conversation_context)
             
             # 调用GPT-4O产品经理分析，传入项目规划器的上下文
+            task_instruction = ""
+            if self.project_planner:
+                try:
+                    task_instruction = self.project_planner.generate_task_instruction(cursor_reply)
+                except Exception as e:
+                    logger.error(f"生成任务指令失败: {e}")
+
             pm_reply = self.gpt_controller.analyze_as_product_manager(
                 screenshot=screenshot,
                 cursor_reply=cursor_reply,
                 project_context=project_context,
                 conversation_history=conversation_context,
-                current_stage=current_stage
+                current_stage=current_stage,
+                task_instruction=task_instruction
             )
             
             logger.info(f"✅ GPT-4O指令生成完成: {pm_reply[:50]}...")
