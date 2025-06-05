@@ -1,0 +1,8 @@
+{
+  "supervision_mode": "PASSIVE",
+  "auto_intervention": false,
+  "monitor_interval": 15,
+  "stuck_detection_time": 120,
+  "intervention_cooldown": 300,
+  "max_interventions": 3
+}
