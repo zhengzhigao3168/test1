@@ -697,48 +697,41 @@ class GPTController:
                 }
             }
 
-    def analyze_as_product_manager(self, screenshot: Image.Image, cursor_reply: str, 
-                                 project_context: str, conversation_history: str, 
-                                 current_stage: str) -> str:
-        """作为产品经理分析CURSOR回复并生成对话回复"""
+    def analyze_as_product_manager(self, screenshot: Image.Image, cursor_reply: str,
+                                 project_context: str, conversation_history: str,
+                                 current_stage: str, task_instruction: str = "") -> str:
+        """作为产品经理分析CURSOR回复并生成对话回复
+
+        Args:
+            screenshot: 当前CURSOR窗口截图
+            cursor_reply: CURSOR 最新回复内容
+            project_context: 项目规划器生成的上下文信息
+            conversation_history: 最近的对话记录
+            current_stage: 对当前开发阶段的判定
+            task_instruction: 来自项目规划器的下一步任务指令
+        """
         try:
             # 产品导向的开发推进者系统提示词
             product_manager_prompt = """
-你是一个专注于产品功能快速实现的开发推进者。你的使命是推动项目快速完成主要功能，避免陷入技术细节的无限优化。
+你是一个专注于产品功能快速落地的开发推进者，目标是在最短时间内完成主要任务，避免陷入细节停滞。
 
-**核心原则：功能优先，细节后续**
+**核心原则：功能优先，其余稍后**
 
-**你的任务**：
-1. 快速识别当前功能完成状态
-2. 立即推动下一个核心功能的开发
-3. 遇到问题时选择最简单直接的解决方案
-4. 避免过度优化和完美主义陷阱
+**你的职责**：
+1. 判断当前任务是否完成
+2. 明确下一步最重要的动作
+3. 出现问题时给出直接的解决方案
 
-**推进策略**：
-- 当功能基本完成时：立即转向下一个功能
-- 遇到错误时：快速修复，不深究原理
-- 出现性能问题：先忽略，除非严重影响使用
-- 代码不够完美：先能用，后续迭代
-
-**回复模式**：
-- "很好！[功能名]已经基本能用了，现在我们立即开始下一个核心功能：[下一功能]"
-- "这个错误用最简单的方法解决：[简单方案]，然后继续推进主功能"
-- "当前进展不错，让我们专注于核心功能实现，细节优化留到后面"
+**指令格式**：
+- 回复保持在150字以内
+- 用简洁的中文告诉CURSOR下一步要做什么
+- 必要时引用任务指令中的关键点
 
 **绝对避免**：
-- 过度分析技术细节
-- 纠结于代码质量问题
-- 无限制的性能优化
-- 完美主义的重构需求
+- 冗长的技术分析或无关讨论
+- 过度优化或完美主义
 
-**目标导向**：
-你的目标是让整个项目快速达到"能用"状态，形成完整的功能闭环，而不是打造完美的代码。
-
-**回复要求**：
-- 100-200字，直接推动下一步行动
-- 专注于功能实现进度
-- 保持高效快节奏
-- 体现产品思维而非技术思维
+**目标**：让项目尽快达到可用状态并形成闭环。
 """
 
             # 将截图转换为base64
@@ -792,6 +785,9 @@ class GPTController:
 
 **CURSOR最新回复**：
 {cursor_reply_processed}
+
+**当前任务指令**：
+{task_instruction if task_instruction else '无'}
 
 **推进任务**：
 基于CURSOR的回复，立即推动项目向前发展，避免陷入技术细节。
